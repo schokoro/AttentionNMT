@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import nltk
 import spacy
+from matplotlib.font_manager import FontProperties
+from matplotlib import rcParams
 import warnings
 import re
 import random
@@ -162,3 +164,39 @@ def evaluate(model, iterator, criterion):
             epoch_loss += loss.item()
 
     return epoch_loss / len(iterator)
+
+
+def display_attention(sentence: List[str], translation, attention, n_heads, n_rows, n_cols, fontprop_x, fontprop_y):
+    assert n_rows * n_cols == n_heads
+
+    translation = translation[::-1]
+    attention = torch.flip(attention, (2,))
+
+    fig = plt.figure(figsize=((n_cols + 1.5) * 6, (n_rows + 1) * 6))
+
+    for i in range(n_heads):
+        ax = fig.add_subplot(n_rows, n_cols, i + 1)
+
+        _attention = attention.squeeze(0)[i].cpu().detach().numpy()
+
+        cax = ax.matshow(_attention, cmap='bone')
+
+        ax.tick_params(labelsize=20)
+        ax.set_xticklabels([''] + ['<sos>'] + [t.lower() for t in sentence] + ['<eos>'],  #
+                           rotation=45, fontproperties=fontprop_x)
+        ax.set_yticklabels([''] + translation, fontproperties=fontprop_y)
+
+        ax.xaxis.set_major_locator(ticker.MultipleLocator(1))
+        ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
+
+    plt.show()
+    plt.close()
+
+
+def sentence_blue(original: List[str], translation: List[str], n_grams=3) -> float:
+    blue = nltk.translate.bleu_score.sentence_bleu(
+        original,
+        translation[: -1],
+        weights=[1 / n_grams] * n_grams
+    )
+    return blue
