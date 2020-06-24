@@ -1,7 +1,6 @@
 from typing import Dict, List, Optional
 import torch.nn as nn
 import torch
-from torchtext.data import Field, BucketIterator
 from tqdm.notebook import tqdm
 from pandarallel import pandarallel
 import torchtext
@@ -20,16 +19,16 @@ import numpy as np
 import pandas as pd
 
 
-
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def initialize_weights(m):
     if hasattr(m, 'weight') and m.weight.dim() > 1:
         nn.init.xavier_uniform_(m.weight.data)
 
 
-def translate_sentence(sentence, src_field, trg_field, model, device, max_len=max_trg):
+def translate_sentence(sentence, src_field, trg_field, model, device, max_len, src_tokenize):
     model.eval()
 
     if isinstance(sentence, str):
@@ -65,3 +64,101 @@ def translate_sentence(sentence, src_field, trg_field, model, device, max_len=ma
     trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
 
     return trg_tokens[1:], attention  # torch.flip(input=attention, dims=(2,))[1: -1]
+
+
+def evaluate_blue(ev_data, src_field, trg_field, model, device):
+    n_gram_weights = [1 / 3] * 3
+
+    test_len = len(ev_data)
+
+    original_texts = []
+    generated_texts = []
+    macro_bleu = 0
+
+    for example_idx in range(test_len):
+        src = vars(ev_data.examples[example_idx])['src']
+        trg = vars(ev_data.examples[example_idx])['trg']
+        translation, _ = translate_sentence(src, src_field, trg_field, model, device)
+
+        original_texts.append(trg)
+        generated_texts.append(translation)
+
+        bleu_score = nltk.translate.bleu_score.sentence_bleu(
+            [trg[::-1]],  #
+            translation[: -1],
+            weights=n_gram_weights
+        )
+        macro_bleu += bleu_score
+    macro_bleu /= test_len
+
+    return macro_bleu
+
+
+def train(model, iterator, optimizer, criterion, clip, limit: Optional[float] = 1, accumulation_steps=1):
+    model.train()
+
+    epoch_loss = 0
+    optimizer.zero_grad()
+    for i, batch in enumerate(iterator):
+
+        if i / len(iterator) > limit:
+            break
+
+        src = batch.src
+        trg = batch.trg
+
+        output, _ = model(src, trg[:, :-1])  #
+
+        # output = [batch size, trg len - 1, output dim]
+        # trg = [batch size, trg len]
+
+        output_dim = output.shape[-1]
+
+        output = output.contiguous().view(-1, output_dim)
+        trg = trg[:, 1:].contiguous().view(-1)
+
+        # output = [batch size * trg len - 1, output dim]
+        # trg = [batch size * trg len - 1]
+
+        loss = criterion(output, trg)
+        epoch_loss += loss.item()
+
+        loss /= accumulation_steps
+        loss.backward()
+        if (i + 1) % accumulation_steps == 0:  # Wait for several backward steps
+            torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
+            optimizer.step()  # Now we can do an optimizer step
+            model.zero_grad()
+    optimizer.step()
+
+    return epoch_loss / len(iterator)
+
+
+def evaluate(model, iterator, criterion):
+    model.eval()
+
+    epoch_loss = 0
+
+    with torch.no_grad():
+        for i, batch in enumerate(iterator):
+            src = batch.src
+            trg = batch.trg
+
+            output, _ = model(src, trg[:, :-1])
+
+            # output = [batch size, trg len - 1, output dim]
+            # trg = [batch size, trg len]
+
+            output_dim = output.shape[-1]
+
+            output = output.contiguous().view(-1, output_dim)
+            trg = trg[:, 1:].contiguous().view(-1)
+
+            # output = [batch size * trg len - 1, output dim]
+            # trg = [batch size * trg len - 1]
+
+            loss = criterion(output, trg)
+
+            epoch_loss += loss.item()
+
+    return epoch_loss / len(iterator)
