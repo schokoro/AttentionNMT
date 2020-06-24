@@ -257,12 +257,12 @@ class Decoder(nn.Module):
                  n_layers,
                  n_heads,
                  pf_dim,
-                 decoder_layer,
-                 multi_head_attention_layer,
-                 positionwise_feedforward_layer,
-                 dropout,
-                 device,
-                 max_length):
+                 decoder_layer=DecoderLayer,
+                 multi_head_attention_layer=MultiHeadAttentionLayer,
+                 positionwise_feedforward_layer=PositionwiseFeedforwardLayer,
+                 dropout=0.1,
+                 device='cuda',
+                 max_length=512):
         super().__init__()
 
         self.device = device
