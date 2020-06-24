@@ -1,9 +1,6 @@
 from typing import Dict, List, Optional
 import torch.nn as nn
 import torch
-from tqdm.notebook import tqdm
-from pandarallel import pandarallel
-import torchtext
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import nltk
@@ -11,9 +8,6 @@ import spacy
 from matplotlib.font_manager import FontProperties
 from matplotlib import rcParams
 import warnings
-import re
-import random
-import math
 import time
 from janome.tokenizer import Tokenizer as JTokenizer
 import seaborn as sns
