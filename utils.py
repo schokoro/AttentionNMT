@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional
+from builtins import function
+from typing import Dict, List, Optional, Union
 import torch.nn as nn
 import torch
 import matplotlib.pyplot as plt
@@ -13,22 +14,46 @@ from janome.tokenizer import Tokenizer as JTokenizer
 import seaborn as sns
 import numpy as np
 import pandas as pd
+from torchtext.data import Field
 
 
-def count_parameters(model):
+def count_parameters(model: nn.Module) -> int:
+    """
+    Считает количество параметров для модели model
+    :param model:
+    :return:
+    """
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def initialize_weights(m):
-    if hasattr(m, 'weight') and m.weight.dim() > 1:
-        nn.init.xavier_uniform_(m.weight.data)
+def initialize_weights(model: nn.Module):
+    """
+
+    :param model:
+    :return:
+    """
+    if hasattr(model, 'weight') and model.weight.dim() > 1:
+        nn.init.xavier_uniform_(model.weight.data)
 
 
-def translate_sentence(sentence, src_field, trg_field, model, device, max_len, src_tokenize):
+def translate_sentence(sentence: Union[str, List[str]],
+                       src_field: Field, trg_field: Field,
+                       model: nn.Module, device: torch.device,
+                       max_len: int, src_tokenize: function):
+    """
+
+    :param sentence:
+    :param src_field:
+    :param trg_field:
+    :param model:
+    :param device:
+    :param max_len:
+    :param src_tokenize:
+    :return:
+    """
     model.eval()
 
     if isinstance(sentence, str):
-        nlp = spacy.load('en')
         tokens = [token.lower() for token in src_tokenize(sentence)]
     else:
         tokens = [token.lower() for token in sentence]
@@ -62,7 +87,7 @@ def translate_sentence(sentence, src_field, trg_field, model, device, max_len, s
     return trg_tokens[1:], attention  # torch.flip(input=attention, dims=(2,))[1: -1]
 
 
-def evaluate_blue(ev_data, src_field, trg_field, model, device):
+def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tokenize):
     n_gram_weights = [1 / 3] * 3
 
     test_len = len(ev_data)
@@ -74,7 +99,7 @@ def evaluate_blue(ev_data, src_field, trg_field, model, device):
     for example_idx in range(test_len):
         src = vars(ev_data.examples[example_idx])['src']
         trg = vars(ev_data.examples[example_idx])['trg']
-        translation, _ = translate_sentence(src, src_field, trg_field, model, device)
+        translation, _ = translate_sentence(src, src_field, trg_field, model, device, max_len, src_tokenize)
 
         original_texts.append(trg)
         generated_texts.append(translation)
@@ -160,11 +185,25 @@ def evaluate(model, iterator, criterion):
     return epoch_loss / len(iterator)
 
 
-def display_attention(sentence: List[str], translation, attention, n_heads, n_rows, n_cols, fontprop_x, fontprop_y):
+def display_attention(sentence: List[str],
+                      translation,
+                      attention,
+                      n_heads,
+                      n_rows,
+                      n_cols,
+                      fontprop_x=FontProperties(),
+                      fontprop_y=FontProperties(),
+                      reverse_src=False,
+                      reverse_trg=False
+                      ):
     assert n_rows * n_cols == n_heads
 
-    translation = translation[::-1]
-    attention = torch.flip(attention, (2,))
+    if reverse_src:
+        attention = torch.flip(attention, (3,))
+        sentence.reverse()
+    elif reverse_trg:
+        attention = torch.flip(attention, (2,))
+        translation.reverse()
 
     fig = plt.figure(figsize=((n_cols + 1.5) * 6, (n_rows + 1) * 6))
 
