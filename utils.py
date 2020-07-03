@@ -1,4 +1,4 @@
-from builtins import function
+# from builtins import function
 from typing import Dict, List, Optional, Union
 import torch.nn as nn
 import torch
@@ -39,7 +39,7 @@ def initialize_weights(model: nn.Module):
 def translate_sentence(sentence: Union[str, List[str]],
                        src_field: Field, trg_field: Field,
                        model: nn.Module, device: torch.device,
-                       max_len: int, src_tokenize: function):
+                       max_len: int, src_tokenize=None):
     """
 
     :param sentence:
