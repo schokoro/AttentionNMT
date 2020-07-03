@@ -54,7 +54,9 @@ def translate_sentence(sentence: Union[str, List[str]],
     model.eval()
 
     if isinstance(sentence, str):
-        tokens = [token.lower() for token in src_tokenize(sentence)]
+        raise NotImplemented
+        # tokens = [token.lower() for token in src_tokenize(sentence)]
+        # TODO убрать перевод строки
     else:
         tokens = [token.lower() for token in sentence]
 
