@@ -28,7 +28,7 @@ def count_parameters(model: nn.Module) -> int:
 
 def initialize_weights(model: nn.Module):
     """
-
+    Инициализирует веса модели
     :param model:
     :return:
     """
@@ -41,13 +41,13 @@ def translate_sentence(sentence: Union[str, List[str]],
                        model: nn.Module, device: torch.device,
                        max_len: int, src_tokenize=None):
     """
-
-    :param sentence:
+    Функция генерирует перевод исходного предложения `sentence` моделью `model`
+    :param sentence: List[str] список токено исходного предложения
     :param src_field:
     :param trg_field:
     :param model:
     :param device:
-    :param max_len:
+    :param max_len: максимальная длина целевого предложения
     :param src_tokenize:
     :return:
     """
@@ -90,6 +90,17 @@ def translate_sentence(sentence: Union[str, List[str]],
 
 
 def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tokenize):
+    """
+
+    :param ev_data:
+    :param src_field:
+    :param trg_field:
+    :param model:
+    :param device:
+    :param max_len:
+    :param src_tokenize:
+    :return:
+    """
     n_gram_weights = [1 / 3] * 3
 
     test_len = len(ev_data)
@@ -198,6 +209,20 @@ def display_attention(sentence: List[str],
                       reverse_src=False,
                       reverse_trg=False
                       ):
+    """
+
+    :param sentence:
+    :param translation:
+    :param attention:
+    :param n_heads:
+    :param n_rows:
+    :param n_cols:
+    :param fontprop_x:
+    :param fontprop_y:
+    :param reverse_src:
+    :param reverse_trg:
+    :return:
+    """
     assert n_rows * n_cols == n_heads
 
     if reverse_src:
