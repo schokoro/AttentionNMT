@@ -99,8 +99,6 @@ def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tok
         trg = vars(ev_data.examples[example_idx])['trg']
         translation, _ = translate_sentence(src, src_field, trg_field, model, device, max_len, src_tokenize)
 
-        trg.reverse()
-
         bleu_score = nltk.translate.bleu_score.sentence_bleu(
             [trg],  #
             translation[: -1],
