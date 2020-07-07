@@ -118,7 +118,7 @@ def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tok
         generated_texts.append(translation)
 
         bleu_score = nltk.translate.bleu_score.sentence_bleu(
-            [trg[::-1]],  #
+            [trg],  #
             translation[: -1],
             weights=n_gram_weights
         )
@@ -254,8 +254,15 @@ def display_attention(sentence: List[str],
 
 
 def sentence_blue(original: List[str], translation: List[str], n_grams=3) -> float:
+    """
+    Возвращает BLUE для одного предложения
+    :param original:
+    :param translation:
+    :param n_grams:
+    :return:
+    """
     blue = nltk.translate.bleu_score.sentence_bleu(
-        original,
+        [original],
         translation[: -1],
         weights=[1 / n_grams] * n_grams
     )
