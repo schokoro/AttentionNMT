@@ -4,9 +4,11 @@ import torch.nn as nn
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import nltk
+# import nltk
 from matplotlib.font_manager import FontProperties
+from nltk.translate.bleu_score import sentence_bleu
 from torchtext.data import Field
+import numpy as np
 
 
 def count_parameters(model: nn.Module) -> int:
@@ -76,7 +78,7 @@ def translate_sentence(sentence: Union[str, List[str]],
     return trg_tokens[1:], attention
 
 
-def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tokenize):
+def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tokenize, n_grams=3):
     """
 
     :param ev_data:
@@ -88,25 +90,21 @@ def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tok
     :param src_tokenize:
     :return:
     """
-    n_gram_weights = [1 / 3] * 3
-
+    n_gram_weights = [1 / n_grams] * n_grams
     test_len = len(ev_data)
-
-    macro_bleu = 0
+    macro_bleu = []
 
     for example_idx in range(test_len):
         src = vars(ev_data.examples[example_idx])['src']
         trg = vars(ev_data.examples[example_idx])['trg']
         translation, _ = translate_sentence(src, src_field, trg_field, model, device, max_len, src_tokenize)
 
-        bleu_score = nltk.translate.bleu_score.sentence_bleu(
-            [trg],  #
-            translation[: -1],
-            weights=n_gram_weights
-        )
-        macro_bleu += bleu_score
+        bleu_score = sentence_bleu([trg], translation[: -1], weights=n_gram_weights)
+        macro_bleu.append(bleu_score)
 
-    return macro_bleu / test_len
+    macro_bleu = np.array(macro_bleu)
+    print(f'macro_bleu mean{macro_bleu.mean()}, macro_bleu std: {macro_bleu.std()}')
+    return macro_bleu.mean()
 
 
 def train(model, iterator, optimizer, criterion, clip, limit: Optional[float] = 1, accumulation_steps=1):
@@ -242,9 +240,4 @@ def sentence_blue(original: List[str], translation: List[str], n_grams=3) -> flo
     :param n_grams:
     :return:
     """
-    blue = nltk.translate.bleu_score.sentence_bleu(
-        [original],
-        translation[: -1],
-        weights=[1 / n_grams] * n_grams
-    )
-    return blue
+    return sentence_bleu([original], translation[: -1], weights=[1 / n_grams] * n_grams)
