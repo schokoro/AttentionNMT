@@ -105,17 +105,12 @@ def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tok
 
     test_len = len(ev_data)
 
-    original_texts = []
-    generated_texts = []
     macro_bleu = 0
 
     for example_idx in range(test_len):
         src = vars(ev_data.examples[example_idx])['src']
         trg = vars(ev_data.examples[example_idx])['trg']
         translation, _ = translate_sentence(src, src_field, trg_field, model, device, max_len, src_tokenize)
-
-        original_texts.append(trg)
-        generated_texts.append(translation)
 
         bleu_score = nltk.translate.bleu_score.sentence_bleu(
             [trg],  #
