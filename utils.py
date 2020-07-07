@@ -1,19 +1,11 @@
 # from builtins import function
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 import torch.nn as nn
 import torch
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import nltk
-import spacy
 from matplotlib.font_manager import FontProperties
-from matplotlib import rcParams
-import warnings
-import time
-from janome.tokenizer import Tokenizer as JTokenizer
-import seaborn as sns
-import numpy as np
-import pandas as pd
 from torchtext.data import Field
 
 
@@ -53,12 +45,7 @@ def translate_sentence(sentence: Union[str, List[str]],
     """
     model.eval()
 
-    if isinstance(sentence, str):
-        raise NotImplemented
-        # tokens = [token.lower() for token in src_tokenize(sentence)]
-        # TODO убрать перевод строки
-    else:
-        tokens = [token.lower() for token in sentence]
+    tokens = [token.lower() for token in sentence]
 
     tokens = [src_field.init_token] + tokens + [src_field.eos_token]
     src_indexes = [src_field.vocab.stoi[token] for token in tokens]
@@ -86,7 +73,7 @@ def translate_sentence(sentence: Union[str, List[str]],
 
     trg_tokens = [trg_field.vocab.itos[i] for i in trg_indexes]
 
-    return trg_tokens[1:], attention  # torch.flip(input=attention, dims=(2,))[1: -1]
+    return trg_tokens[1:], attention
 
 
 def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tokenize):
@@ -112,15 +99,16 @@ def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tok
         trg = vars(ev_data.examples[example_idx])['trg']
         translation, _ = translate_sentence(src, src_field, trg_field, model, device, max_len, src_tokenize)
 
+        trg.reverse()
+
         bleu_score = nltk.translate.bleu_score.sentence_bleu(
             [trg],  #
             translation[: -1],
             weights=n_gram_weights
         )
         macro_bleu += bleu_score
-    macro_bleu /= test_len
 
-    return macro_bleu
+    return macro_bleu / test_len
 
 
 def train(model, iterator, optimizer, criterion, clip, limit: Optional[float] = 1, accumulation_steps=1):
