@@ -103,8 +103,7 @@ def evaluate_blue(ev_data, src_field, trg_field, model, device, max_len, src_tok
         macro_bleu.append(bleu_score)
 
     macro_bleu = np.array(macro_bleu)
-    print(f'macro_bleu mean{macro_bleu.mean()}, macro_bleu std: {macro_bleu.std()}')
-    return macro_bleu.mean()
+    return macro_bleu
 
 
 def train(model, iterator, optimizer, criterion, clip, limit: Optional[float] = 1, accumulation_steps=1):
